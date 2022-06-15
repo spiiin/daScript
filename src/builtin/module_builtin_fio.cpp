@@ -159,6 +159,10 @@ namespace das {
     }
 
     const FILE * builtin_fopen  ( const char * name, const char * mode ) {
+
+        if (!DAS_IS_PATH_VALID(name))
+            return nullptr;
+
         if ( name && mode ) {
             FILE * f = fopen(name, mode);
             if ( f ) setvbuf(f, NULL, _IOFBF, 65536);
@@ -363,6 +367,10 @@ namespace das {
     }
 
     bool builtin_stat ( const char * filename, FStat & fs ) {
+
+        if (!DAS_IS_PATH_VALID(filename))
+            return false;
+
         if ( filename!=nullptr ) {
             return stat(filename, &fs.stats) == 0;
         } else {
@@ -371,6 +379,10 @@ namespace das {
     }
 
      void builtin_dir ( const char * path, const Block & fblk, Context * context, LineInfoArg * at ) {
+
+        if (!DAS_IS_PATH_VALID(path))
+            return;
+
 #if defined(_MSC_VER)
         _finddata_t c_file;
         intptr_t hFile;
@@ -418,6 +430,8 @@ namespace das {
     }
 
     int builtin_popen ( const char * cmd, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at ) {
+        return -1;
+/*
 #ifdef _MSC_VER
         FILE * f = cmd ? _popen(cmd, "rt") : nullptr;
 #elif defined(__linux__)
@@ -434,6 +448,7 @@ namespace das {
         auto t = pclose(f);
         return WIFEXITED(t) ? WEXITSTATUS(t) : WIFSIGNALED(t) ? WTERMSIG(t) : t;
 #endif
+*/
     }
 
     char * get_full_file_name ( const char * path, Context * context, LineInfoArg * ) {

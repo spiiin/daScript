@@ -140,7 +140,8 @@ def public watch_files
                 appTime[fname] = st.mtime
     return any
 
-def private set_new_context ( var ptr : smart_ptr<Context>; full_restart:bool = false )
+[export]
+def set_new_context ( var ptr : smart_ptr<Context>; full_restart:bool = false )
     to_log(LOG_TRACE, "LIVE: set new context {intptr(get_ptr(ptr))}\n")
     invoke_live("shutdown")
     if appPtr != null
@@ -159,27 +160,31 @@ def private set_new_context ( var ptr : smart_ptr<Context>; full_restart:bool = 
     delete liveFunctionLookup
     if appPtr != null
         appPtr.alwaysStackWalkOnException = true
-        unsafe
-            // fixup decs if its there
-            var pvar = get_context_global_variable(appPtr, "decsState")
-            if pvar != null
-                var pstate : array<uint8> ? = get_context_global_variable(appPtr, "decsLiveData")
-                assert(pstate!=null)
-                var css <- @ <| [[&decsState,&decsLiveData]] ( data : array<uint8># )
-                    decsLiveData := data
-                    restoreLiveContext()
-                    delete decsLiveData
-                invoke_in_context(appPtr, css, decsLiveData)
-                delete css
-            // fix-up live context, if its there
-            var pctx_var = get_context_global_variable(appPtr, "liveContext")
-            if pctx_var != null
-                var lContext <- reinterpret<smart_ptr<Context>> addr(this_context())
-                var css <- @ <| [[&decsState]] ( state : DecsState? )
-                    unsafe
-                        liveContext <- lContext
-                invoke_in_context(appPtr, css, addr(decsState))
-                delete css
+        if !full_restart
+            unsafe
+                // fixup decs if its there
+                var pvar = get_context_global_variable(appPtr, "decsState")
+                if pvar != null
+                    var pstate : array<uint8> ? = get_context_global_variable(appPtr, "decsLiveData")
+                    assert(pstate!=null)
+                    var css <- @ <| [[&decsState,&decsLiveData]] ( data : array<uint8># )
+                        decsLiveData := data
+                        restoreLiveContext()
+                        delete decsLiveData
+                    invoke_in_context(appPtr, css, decsLiveData)
+                    delete css
+                // fix-up live context, if its there
+                var pctx_var = get_context_global_variable(appPtr, "liveContext")
+                if pctx_var != null
+                    var lContext <- reinterpret<smart_ptr<Context>> addr(this_context())
+                    var css <- @ <| [[&decsState]] ( state : DecsState? )
+                        unsafe
+                            liveContext <- lContext
+                    invoke_in_context(appPtr, css, addr(decsState))
+                    delete css
+        else
+            restart()
+
         invoke_live("initialize", full_restart)
 
 def public recompile(full_restart:bool=false)

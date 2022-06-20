@@ -14,6 +14,8 @@
 
 #include "daScript/simulate/simulate_visit_op.h"
 
+das::Context * get_context ( int stackSize=0 );//link time resolved dependencies
+
 namespace das
 {
     // common for move and copy
@@ -632,7 +634,8 @@ namespace das
             if ( useCMRES ) {
                 fakeVariable->aliasCMRES = true;
             } else if ( useStackRef ) {
-                fakeVariable->stackTop = stackTop + extraOffset;
+                fakeVariable->stackTop = stackTop;
+                fakeVariable->extraLocalOffset = extraOffset;
                 fakeVariable->type->ref = true;
                 if ( total != 1 ) {
                     fakeVariable->type->dim.push_back(total);
@@ -1214,8 +1217,7 @@ namespace das
         auto cont = arguments[0]->simulate(context);
         auto val = arguments[1]->simulate(context);
         if ( arguments[0]->type->isGoodTableType() ) {
-            uint32_t valueTypeSize = arguments[0]->type->secondType->getSizeOf();
-            DAS_ASSERTF(valueTypeSize==0,"Expecting value type size to be 0 for set insert");
+            DAS_ASSERTF(arguments[0]->type->secondType->getSizeOf()==0,"Expecting value type size to be 0 for set insert");
             return context.code->makeValueNode<SimNode_TableSetInsert>(arguments[0]->type->firstType->baseType, at, cont, val);
         } else {
             DAS_ASSERTF(0, "we should not even be here. erase can only accept tables. infer type should have failed.");
@@ -1942,10 +1944,10 @@ namespace das
             if ( variable->type->ref ) {
                 if ( r2vType->baseType!=Type::none ) {
                     return context.code->makeValueNode<SimNode_GetLocalRefOffR2V>(r2vType->baseType, at,
-                                                    variable->stackTop, extraOffset);
+                                                    variable->stackTop, extraOffset + variable->extraLocalOffset);
                 } else {
                     return context.code->makeNode<SimNode_GetLocalRefOff>(at,
-                                                    variable->stackTop, extraOffset);
+                                                    variable->stackTop, extraOffset + variable->extraLocalOffset);
                 }
             } else if ( variable->aliasCMRES ) {
                 if ( r2vType->baseType!=Type::none ) {
@@ -2018,9 +2020,9 @@ namespace das
             }
         } else if ( local ) {
             if ( r2v ) {
-                return trySimulate(context, 0, type);
+                return trySimulate(context, variable->extraLocalOffset, type);
             } else {
-                return trySimulate(context, 0, make_smart<TypeDecl>(Type::none));
+                return trySimulate(context, variable->extraLocalOffset, make_smart<TypeDecl>(Type::none));
             }
         } else if ( argument) {
             if (variable->type->isRef()) {
@@ -2790,7 +2792,7 @@ namespace das
 
     void Program::makeMacroModule ( TextWriter & logs ) {
         isCompilingMacros = true;
-        thisModule->macroContext = make_smart<Context>(getContextStackSize());
+        thisModule->macroContext = get_context(getContextStackSize());
         auto oldAot = policies.aot;
         policies.aot = false;
         simulate(*thisModule->macroContext, logs);

@@ -2037,25 +2037,7 @@ namespace das {
         virtual ExpressionPtr visit ( ExprNullCoalescing * expr ) override {
             if ( !expr->subexpr->type      || expr->subexpr->type->isAliasOrExpr()      ) return Visitor::visit(expr);  // failed to infer
             if ( !expr->defaultValue->type || expr->defaultValue->type->isAliasOrExpr() ) return Visitor::visit(expr);  // failed to infer
-            // lets look for an overload of ??
-            if ( true /* !expr->no_promotion */ ) { // note, we might need to add 'no promotion' option at some point
-                auto opName = "_::??";
-                auto tempCall = make_smart<ExprLooksLikeCall>(expr->at,opName);
-                tempCall->arguments.push_back(expr->subexpr);
-                tempCall->arguments.push_back(expr->defaultValue);
-                auto ffunc = inferFunctionCall(tempCall.get(),InferCallError::tryOperator).get();
-                if ( opName != tempCall->name ) {   // this happens when the operator gets instanced
-                    reportAstChanged();
-                    auto opCall = make_smart<ExprCall>(expr->at, tempCall->name);
-                    opCall->arguments = move(tempCall->arguments);
-                    return opCall;
-                } else if ( ffunc ) { // function ?? found
-                    reportAstChanged();
-                    auto opCall = make_smart<ExprCall>(expr->at, "??");
-                    opCall->arguments = move(tempCall->arguments);
-                    return opCall;
-                }
-            }
+            if ( auto opE = inferGenericOperator("??",expr->at,expr->subexpr,expr->defaultValue) ) return opE;
             // infer
             expr->subexpr = Expression::autoDereference(expr->subexpr);
             auto seT = expr->subexpr->type;
@@ -3739,22 +3721,7 @@ namespace das {
             if ( !expr->subexpr->type || expr->subexpr->type->isAliasOrExpr() ) return Visitor::visit(expr);    // failed to infer
             if ( !expr->index->type   || expr->index->type->isAliasOrExpr()   ) return Visitor::visit(expr);    // failed to infer
             if ( !expr->no_promotion ) {
-                auto opName = "_::[]";
-                auto tempCall = make_smart<ExprLooksLikeCall>(expr->at,opName);
-                tempCall->arguments.push_back(expr->subexpr);
-                tempCall->arguments.push_back(expr->index);
-                auto ffunc = inferFunctionCall(tempCall.get(),InferCallError::tryOperator).get();
-                if ( opName != tempCall->name ) {   // this happens when the operator gets instanced
-                    reportAstChanged();
-                    auto opCall = make_smart<ExprCall>(expr->at, tempCall->name);
-                    opCall->arguments = move(tempCall->arguments);
-                    return opCall;
-                } else if ( ffunc ) { // function [] found
-                    reportAstChanged();
-                    auto opCall = make_smart<ExprCall>(expr->at, "[]");
-                    opCall->arguments = move(tempCall->arguments);
-                    return opCall;
-                }
+                if ( auto opE = inferGenericOperator("[]",expr->at,expr->subexpr,expr->index) ) return opE;
             }
             expr->index = Expression::autoDereference(expr->index);
             auto seT = expr->subexpr->type;
@@ -3867,22 +3834,7 @@ namespace das {
             if ( !expr->subexpr->type || expr->subexpr->type->isAliasOrExpr() ) return Visitor::visit(expr);    // failed to infer
             if ( !expr->index->type   || expr->index->type->isAliasOrExpr()   ) return Visitor::visit(expr);    // failed to infer
             if ( !expr->no_promotion ) {
-                auto opName = "_::?[]";
-                auto tempCall = make_smart<ExprLooksLikeCall>(expr->at,opName);
-                tempCall->arguments.push_back(expr->subexpr);
-                tempCall->arguments.push_back(expr->index);
-                auto ffunc = inferFunctionCall(tempCall.get(),InferCallError::tryOperator).get();
-                if ( opName != tempCall->name ) {   // this happens when the operator gets instanced
-                    reportAstChanged();
-                    auto opCall = make_smart<ExprCall>(expr->at, tempCall->name);
-                    opCall->arguments = move(tempCall->arguments);
-                    return opCall;
-                } else if ( ffunc ) { // function ?[] found
-                    reportAstChanged();
-                    auto opCall = make_smart<ExprCall>(expr->at, "?[]");
-                    opCall->arguments = move(tempCall->arguments);
-                    return opCall;
-                }
+                if ( auto opE = inferGenericOperator("?[]",expr->at,expr->subexpr,expr->index) ) return opE;
             }
             if ( !expr->subexpr->type->isVectorType() ) {
                 expr->subexpr = Expression::autoDereference(expr->subexpr);
@@ -4241,7 +4193,7 @@ namespace das {
         }
     // ExprAsVariant
         virtual ExpressionPtr visit(ExprAsVariant * expr) override {
-            if (!expr->value->type) return Visitor::visit(expr);
+            if (!expr->value->type || expr->value->type->isAliasOrExpr()) return Visitor::visit(expr);
             // implement variant macros
             ExpressionPtr substitute;
             auto thisModule = ctx.thisProgram->thisModule.get();
@@ -4261,6 +4213,8 @@ namespace das {
                 reportAstChanged();
                 return substitute;
             }
+            // generic operator
+            if ( auto opE = inferGenericOperatorWithName("`as",expr->at,expr->value,expr->name) ) return opE;
             // regular infer
             auto valT = expr->value->type;
             if ( !valT->isGoodVariantType() ) {
@@ -4284,7 +4238,7 @@ namespace das {
         }
     // ExprSafeAsVariant
         virtual ExpressionPtr visit(ExprSafeAsVariant * expr) override {
-            if (!expr->value->type) return Visitor::visit(expr);
+            if (!expr->value->type || expr->value->type->isAliasOrExpr()) return Visitor::visit(expr);
             // implement variant macros
             ExpressionPtr substitute;
             auto thisModule = ctx.thisProgram->thisModule.get();
@@ -4304,6 +4258,8 @@ namespace das {
                 reportAstChanged();
                 return substitute;
             }
+            // generic operator
+            if ( auto opE = inferGenericOperatorWithName("?as",expr->at,expr->value,expr->name) ) return opE;
             // regular infer
             if ( !expr->value->type->isPointer() && !safeExpression(expr) ) {
                 error("variant ?as on non-pointer requires unsafe", "", "",
@@ -4336,7 +4292,7 @@ namespace das {
         }
     // ExprIsVariant
         virtual ExpressionPtr visit(ExprIsVariant * expr) override {
-            if (!expr->value->type) return Visitor::visit(expr);
+            if (!expr->value->type || expr->value->type->isAliasOrExpr()) return Visitor::visit(expr);
             // implement variant macros
             ExpressionPtr substitute;
             auto thisModule = ctx.thisProgram->thisModule.get();
@@ -4356,6 +4312,8 @@ namespace das {
                 reportAstChanged();
                 return substitute;
             }
+            // generic operator
+            if ( auto opE = inferGenericOperatorWithName("`is",expr->at,expr->value,expr->name) ) return opE;
             // regular infer
             auto valT = expr->value->type;
             if ( !valT->isGoodVariantType() ) {
@@ -4403,26 +4361,7 @@ namespace das {
                 return Visitor::visit(expr);
             }
             if ( !expr->no_promotion ) {
-                auto opName = "_::.";
-                auto tempCall = make_smart<ExprLooksLikeCall>(expr->at,opName);
-                tempCall->arguments.push_back(expr->value);
-                auto conststring = make_smart<TypeDecl>(Type::tString);
-                conststring->constant = true;
-                auto fieldName = make_smart<ExprConstString>(expr->at,expr->name);
-                fieldName->type = conststring;
-                tempCall->arguments.push_back(fieldName);
-                auto ffunc = inferFunctionCall(tempCall.get(),InferCallError::tryOperator).get();
-                if ( opName != tempCall->name ) {   // this happens when the operator gets instanced
-                    reportAstChanged();
-                    auto opCall = make_smart<ExprCall>(expr->at, tempCall->name);
-                    opCall->arguments = move(tempCall->arguments);
-                    return opCall;
-                } else if ( ffunc ) { // function . found
-                    reportAstChanged();
-                    auto opCall = make_smart<ExprCall>(expr->at, ".");
-                    opCall->arguments = move(tempCall->arguments);
-                    return opCall;
-                }
+                if ( auto opE = inferGenericOperatorWithName(".",expr->at,expr->value,expr->name) ) return opE;
             }
             auto valT = expr->value->type;
             if ( valT->isVectorType() ) {
@@ -4541,26 +4480,7 @@ namespace das {
         virtual ExpressionPtr visit ( ExprSafeField * expr ) override {
             if ( !expr->value->type || expr->value->type->isAliasOrExpr() ) return Visitor::visit(expr);    // failed to infer
             if ( !expr->no_promotion ) {
-                auto opName = "_::?.";
-                auto tempCall = make_smart<ExprLooksLikeCall>(expr->at,opName);
-                tempCall->arguments.push_back(expr->value);
-                auto conststring = make_smart<TypeDecl>(Type::tString);
-                conststring->constant = true;
-                auto fieldName = make_smart<ExprConstString>(expr->at,expr->name);
-                fieldName->type = conststring;
-                tempCall->arguments.push_back(fieldName);
-                auto ffunc = inferFunctionCall(tempCall.get(),InferCallError::tryOperator).get();
-                if ( opName != tempCall->name ) {   // this happens when the operator gets instanced
-                    reportAstChanged();
-                    auto opCall = make_smart<ExprCall>(expr->at, tempCall->name);
-                    opCall->arguments = move(tempCall->arguments);
-                    return opCall;
-                } else if ( ffunc ) { // function ?. found
-                    reportAstChanged();
-                    auto opCall = make_smart<ExprCall>(expr->at, "?.");
-                    opCall->arguments = move(tempCall->arguments);
-                    return opCall;
-                }
+                if ( auto opE = inferGenericOperatorWithName("?.",expr->at,expr->value,expr->name) ) return opE;
             }
             auto valT = expr->value->type;
             if ( !valT->isPointer() || !valT->firstType ) {
@@ -5908,6 +5828,10 @@ namespace das {
                     error("local variable " + var->name + " initialization type can't be inferred, "
                           + describeType(var->type) + " = " + describeType(var->init->type), "", "",
                           var->at, CompilationError::cant_infer_mismatching_restrictions );
+                } else if ( varT->isVoid() ) {
+                    error("local variable " + var->name + " initialization can't be void, "
+                          + describeType(var->type), "", "",
+                          var->at, CompilationError::cant_infer_mismatching_restrictions );
                 } else {
                     varT->ref = false;
                     TypeDecl::applyAutoContracts(varT, var->type);
@@ -6369,7 +6293,7 @@ namespace das {
             }
         }
 
-        void reportOp2Errors ( ExprLooksLikeCall * expr ) {
+        bool reportOp2Errors ( ExprLooksLikeCall * expr ) {
             auto expr_left = expr->arguments[0].get();
             auto expr_right = expr->arguments[1].get();
             auto expr_op = expr->name.substr(2);
@@ -6378,9 +6302,11 @@ namespace das {
                     if ( !expr_left->type->ref ) {
                         error("numeric operator " + expr_op + " left side must be reference.", "", "",
                             expr->at, CompilationError::operator_not_found);
+                        return true;
                     } else if ( expr_left->type->isConst() ) {
                         error("numeric operator " + expr_op + " left side can't be constant.", "", "",
                             expr->at, CompilationError::operator_not_found);
+                        return true;
                     } else  {
                         if ( verbose ) {
                             TextWriter tw;
@@ -6389,9 +6315,11 @@ namespace das {
                                 das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType)
                                 + " is not defined", "", "try the following\n" + tw.str(),
                                 expr->at, CompilationError::operator_not_found);
+                            return true;
                         } else {
                             error("numeric operator " + expr_op + " type mismatch. both sides have to be of the same type. ",  "", "",
                                 expr->at, CompilationError::operator_not_found);
+                            return true;
                         }
                     }
                 } else {
@@ -6404,21 +6332,26 @@ namespace das {
                                 das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType)
                                     + " is not defined", "", "try one of the following\n" + tw.str(),
                                     expr->at, CompilationError::operator_not_found);
+                            return true;
                         } else if ( expr_left->type->isNumericStorage()  ) {
                             error("numeric operator " + expr_op + " is not defined for storage types (int8,uint8,int16,uint16).",
                                 "\t" + das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType),
                                     "", expr->at, CompilationError::operator_not_found);
+                            return true;
                         } else {
                             error("numeric operator " + expr_op + " type mismatch.",
                                 "\t" + das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType),
                                     "", expr->at, CompilationError::operator_not_found);
+                            return true;
                         }
                     } else {
                         error("numeric operator " + expr_op + " type mismatch.", "" , "",
                             expr->at, CompilationError::operator_not_found);
+                        return true;
                     }
                 }
             }
+            return false;
         }
         enum class InferCallError {
             functionOrGeneric,
@@ -6621,14 +6554,18 @@ namespace das {
                             reportAstChanged();
                         } else {
                             if ( cerr==InferCallError::operatorOp2 ) {
-                                reportOp2Errors(expr);
+                                if ( !reportOp2Errors(expr) ) {
+                                    reportMissing(expr, types, "no matching functions or generics ", true);
+                                }
                             } else if ( cerr!=InferCallError::tryOperator ) {
                                 reportMissing(expr, types, "no matching functions or generics ", true);
                             }
                         }
                     } else {
                         if ( cerr==InferCallError::operatorOp2 ) {
-                            reportOp2Errors(expr);
+                            if ( !reportOp2Errors(expr) ) {
+                                reportMissing(expr, types, "no matching functions or generics ", true);
+                            }
                         } else if ( cerr!=InferCallError::tryOperator ) {
                             reportMissing(expr, types, "no matching functions or generics ", true);
                         }
@@ -6636,6 +6573,33 @@ namespace das {
                 }
             }
             return nullptr;
+        }
+        ExpressionPtr inferGenericOperator ( const string & opN, const LineInfo & expr_at, const ExpressionPtr & arg0, const ExpressionPtr & arg1, InferCallError err = InferCallError::tryOperator ) {
+            auto opName = "_::" + opN;
+            auto tempCall = make_smart<ExprLooksLikeCall>(expr_at,opName);
+            tempCall->arguments.push_back(arg0);
+            if ( arg1 ) tempCall->arguments.push_back(arg1);
+            auto ffunc = inferFunctionCall(tempCall.get(),err).get();
+            if ( opName != tempCall->name ) {   // this happens when the operator gets instanced
+                reportAstChanged();
+                auto opCall = make_smart<ExprCall>(expr_at, tempCall->name);
+                opCall->arguments = move(tempCall->arguments);
+                return opCall;
+            } else if ( ffunc ) { // function found
+                reportAstChanged();
+                auto opCall = make_smart<ExprCall>(expr_at, opN);
+                opCall->arguments = move(tempCall->arguments);
+                return opCall;
+            } else {
+                return nullptr;
+            }
+        }
+        ExpressionPtr inferGenericOperatorWithName ( const string & opN, const LineInfo & expr_at, const ExpressionPtr & arg0, const string & arg1, InferCallError err = InferCallError::tryOperator ) {
+            auto conststring = make_smart<TypeDecl>(Type::tString);
+            conststring->constant = true;
+            auto fieldName = make_smart<ExprConstString>(expr_at,arg1);
+            fieldName->type = conststring;
+            return inferGenericOperator(opN, expr_at, arg0, fieldName, err);
         }
         virtual ExpressionPtr visit ( ExprCall * expr ) override {
             if (expr->argumentsFailedToInfer) return Visitor::visit(expr);

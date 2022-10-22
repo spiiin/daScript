@@ -1299,5 +1299,7 @@ namespace das
         addConstant<int>(*this, "LOG_INFO",     LogLevel::info);
         addConstant<int>(*this, "LOG_DEBUG",    LogLevel::debug);
         addConstant<int>(*this, "LOG_TRACE",    LogLevel::trace);
+
+        addUsing<das::string>(*this, lib, "das::string");
     }
 }

@@ -1749,9 +1749,7 @@ namespace das
             breakPoint(at, "exception", message);
         }
 #endif
-#if !defined(_MSC_VER) || (_MSC_VER>1900)
-        exit(0);
-#endif
+        os_debug_break();
     }
 
     void Context::rethrow () {
@@ -1771,9 +1769,7 @@ namespace das
             os_debug_break();
         }
 #endif
-#if !defined(_MSC_VER) || (_MSC_VER>1900)
-        exit(0);
-#endif
+        os_debug_break();
     }
 
 #ifdef _MSC_VER

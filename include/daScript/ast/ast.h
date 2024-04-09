@@ -1151,14 +1151,14 @@ namespace das
 
     #define REGISTER_MODULE(ClassName) \
         das::Module * register_##ClassName () { \
-            das::daScriptEnvironment::ensure(); \
+            das::daScriptEnvironment::ensureValid(); \
             ClassName * module_##ClassName = new ClassName(); \
             return module_##ClassName; \
         }
 
     #define REGISTER_MODULE_IN_NAMESPACE(ClassName,Namespace) \
         das::Module * register_##ClassName () { \
-            das::daScriptEnvironment::ensure(); \
+            das::daScriptEnvironment::ensureValid(); \
             Namespace::ClassName * module_##ClassName = new Namespace::ClassName(); \
             return module_##ClassName; \
         }
@@ -1626,7 +1626,7 @@ namespace das
         DebugAgentInstance g_threadLocalDebugAgent;
         static DAS_THREAD_LOCAL daScriptEnvironment * bound;
         static DAS_THREAD_LOCAL daScriptEnvironment * owned;
-        static void ensure();
+        static void ensureValid();
     };
 }
 

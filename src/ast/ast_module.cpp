@@ -114,7 +114,7 @@ namespace das {
     atomic<int> g_envTotal(0);
 
     void Module::Initialize() {
-        daScriptEnvironment::ensure();
+        daScriptEnvironment::ensureValid();
         g_envTotal ++;
         bool all = false;
         while ( !all ) {

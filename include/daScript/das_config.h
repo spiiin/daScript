@@ -106,11 +106,16 @@ using das_safe_set = std::set<K,C>;
 #define DAS_PRINT_VEC_SEPARATROR ","
 #endif
 
+#ifdef DAS_EXTERN_LOGERROR
+  extern void das_to_stdout(const char* format, ...);
+  extern void das_to_stderr(const char* format, ...);
+#else
+  #ifndef das_to_stdout
+    #define das_to_stdout(...) { fprintf(stdout, __VA_ARGS__); fflush(stdout); }
+  #endif
 
-#ifndef das_to_stdout
-#define das_to_stdout(...) { fprintf(stdout, __VA_ARGS__); fflush(stdout); }
-#endif
+  #ifndef das_to_stderr
+    #define das_to_stderr(...) { fprintf(stderr, __VA_ARGS__); fflush(stderr); }
+  #endif
 
-#ifndef das_to_stderr
-#define das_to_stderr(...) { fprintf(stderr, __VA_ARGS__); fflush(stderr); }
 #endif

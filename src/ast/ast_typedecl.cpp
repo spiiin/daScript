@@ -1878,6 +1878,7 @@ namespace das
             case Type::tEnumeration:
             case Type::tEnumeration8:
             case Type::tEnumeration16:
+            case Type::tEnumeration64:
             case Type::tRange:
             case Type::tURange:
             case Type::tRange64:
@@ -1951,6 +1952,7 @@ namespace das
             case Type::tEnumeration:
             case Type::tEnumeration8:
             case Type::tEnumeration16:
+            case Type::tEnumeration64:
             case Type::tInt:
             case Type::tInt2:
             case Type::tInt3:
@@ -2013,6 +2015,7 @@ namespace das
             case Type::tEnumeration:
             case Type::tEnumeration8:
             case Type::tEnumeration16:
+            case Type::tEnumeration64:
             case Type::tBool:
                 /*
             case Type::tInt8:
@@ -2649,10 +2652,11 @@ namespace das
                 ss << structType->module->name << "::";
             }
             ss << structType->name << ">";
-        } else if ( baseType==Type::tEnumeration || baseType==Type::tEnumeration8 || baseType==Type::tEnumeration16 ) {
+        } else if ( baseType==Type::tEnumeration || baseType==Type::tEnumeration8 || baseType==Type::tEnumeration16 ||  baseType==Type::tEnumeration64) {
             ss << "E";
             if ( baseType==Type::tEnumeration8 ) ss << "8";
             else if ( baseType==Type::tEnumeration16 ) ss << "16";
+            else if ( baseType==Type::tEnumeration64 ) ss << "64";
             if ( enumType ) {
                 ss << "<" << enumType->getMangledName() << ">";
             }
@@ -2945,10 +2949,16 @@ namespace das
                 if ( *ch=='8' ) {
                     ch ++;
                     pt = make_smart<TypeDecl>(Type::tEnumeration8);
-                } else if ( ch[0]=='1' && ch[1]=='6' ) {
+                }
+                else if (ch[0] == '1' && ch[1] == '6') {
                     ch += 2;
                     pt = make_smart<TypeDecl>(Type::tEnumeration16);
-                } else {
+                }
+                else if ( ch[0]=='6' && ch[1]=='4' ) {
+                    ch += 2;
+                    pt = make_smart<TypeDecl>(Type::tEnumeration64);
+                }
+                else {
                     pt = make_smart<TypeDecl>(Type::tEnumeration);
                 }
                 if ( *ch=='<' ) {

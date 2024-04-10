@@ -875,7 +875,7 @@ namespace das
         auto tinfo = itinfo->firstType;
         if ( !tinfo ) context.throw_error_at(call->debugInfo, "missing iterator type info");
         if ( tinfo->type!=Type::tEnumeration && tinfo->type!=Type::tEnumeration8
-            && tinfo->type!=Type::tEnumeration16 ) {
+            && tinfo->type!=Type::tEnumeration16 && tinfo->type!=Type::tEnumeration64 ) {
             context.throw_error_at(call->debugInfo, "not an iterator of enumeration");
         }
         auto einfo = tinfo->enumType;
@@ -893,6 +893,10 @@ namespace das
         case Type::tEnumeration16:
             iter = context.heap->allocateIterator(sizeof(EnumIterator<int16_t>), "enum16 iterator");
             new (iter) EnumIterator<int16_t>(einfo);
+            break;
+        case Type::tEnumeration64:
+            iter = context.heap->allocateIterator(sizeof(EnumIterator<int64_t>), "enum64 iterator");
+            new (iter) EnumIterator<int64_t>(einfo);
             break;
         default:
             DAS_ASSERT(0 && "how???");

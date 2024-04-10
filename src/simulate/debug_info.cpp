@@ -28,6 +28,7 @@ namespace das
         {   Type::tEnumeration, "enumeration" },
         {   Type::tEnumeration8,"enumeration8" },
         {   Type::tEnumeration16, "enumeration16" },
+        {   Type::tEnumeration64, "enumeration64" },
         {   Type::tIterator,    "iterator" },
         {   Type::tArray,       "array" },
         {   Type::tTable,       "table" },

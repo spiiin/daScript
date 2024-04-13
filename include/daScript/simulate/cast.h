@@ -419,6 +419,6 @@ namespace das
     > {
         static __forceinline TT to(vec4f x) { return (TT)v_extract_xi64(v_cast_vec4i(x)); }
         static __forceinline vec4f from(TT x) { return v_cast_vec4f(v_ldui_half(&x)); }
-        static __forceinline vec4f from(int64_t x) { return v_cast_vec4f(v_ldui_half(x)); }
+        static __forceinline vec4f from(int64_t x) { return v_cast_vec4f(v_ldui_half(&x)); }
     };
 }

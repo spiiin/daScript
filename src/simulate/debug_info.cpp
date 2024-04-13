@@ -73,7 +73,7 @@ namespace das
         return structType;
     }
     EnumInfo * TypeInfo::getEnumType() const {
-        if ( type != Type::tEnumeration && type != Type::tEnumeration8 && type != Type::tEnumeration16 ) {
+        if ( type != Type::tEnumeration && type != Type::tEnumeration8 && type != Type::tEnumeration16 && type != Type::tEnumeration64) {
             return nullptr;
         }
         return enumType;
@@ -110,6 +110,7 @@ namespace das
             case tEnumeration:  return sizeof(int32_t);
             case tEnumeration8: return sizeof(int8_t);
             case tEnumeration16:return sizeof(int16_t);
+            case tEnumeration64:return sizeof(int64_t);
             case tInt:          return sizeof(int);
             case tInt2:         return sizeof(int2);
             case tInt3:         return sizeof(int3);
@@ -163,6 +164,7 @@ namespace das
             case tEnumeration:  return alignof(int32_t);
             case tEnumeration8: return alignof(int8_t);
             case tEnumeration16:return alignof(int16_t);
+            case tEnumeration64:return alignof(int64_t);
             case tInt:          return alignof(int32_t);
             case tInt2:         return alignof(int2);
             case tInt3:         return alignof(int3);
@@ -394,7 +396,7 @@ namespace das
 
         }
         if ( THIS->type==Type::tEnumeration || THIS->type==Type::tEnumeration8 ||
-            THIS->type==Type::tEnumeration16 ) {
+            THIS->type==Type::tEnumeration16 || THIS->type==Type::tEnumeration64) {
             if ( THIS->type != decl->type ) {
                 return false;
             }
@@ -492,7 +494,7 @@ namespace das
             stream << info->structType->name;
         } else if ( info->type==Type::tPointer ) {
             stream << debug_type(info->firstType) << " ?";
-        } else if ( info->type==Type::tEnumeration || info->type==Type::tEnumeration8 || info->type==Type::tEnumeration16 ) {
+        } else if ( info->type==Type::tEnumeration || info->type==Type::tEnumeration8 || info->type==Type::tEnumeration16 || info->type==Type::tEnumeration64) {
             stream << ((info->enumType && info->enumType->name) ? info->enumType->name : "enum");
         } else if ( info->type==Type::tArray ) {
             stream << "array<" << debug_type(info->firstType) << ">";
@@ -618,10 +620,11 @@ namespace das
             }
             */
             ss << info->structType->name << ">";
-        } else if ( info->type==Type::tEnumeration || info->type==Type::tEnumeration8 || info->type==Type::tEnumeration16 ) {
+        } else if ( info->type==Type::tEnumeration || info->type==Type::tEnumeration8 || info->type==Type::tEnumeration16 || info->type==Type::tEnumeration64) {
             ss << "E";
             if ( info->type==Type::tEnumeration8 ) ss << "8";
             else if ( info->type==Type::tEnumeration16 ) ss << "16";
+            else if ( info->type==Type::tEnumeration64 ) ss << "64";
             if ( info->enumType ) {
                 // TODO: add module name to enum info
                 ss << "<" << info->enumType->name << ">";

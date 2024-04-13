@@ -2768,17 +2768,35 @@ namespace das {
         }
     };
 
-    template <typename ET>
+    template <typename ET, typename Enable = void>
     struct das_operator_enum_AND {
-        static ET invoke ( ET a, ET b ) {
+        static ET invoke(ET a, ET b) {
             return ET(int(a) & int(b));
         }
         template <typename EA, typename EB>
-        static ET invoke ( EA a, EB b ) {
+        static ET invoke(EA a, EB b) {
             return ET(int(a) & int(b));
         }
     };
+
     template <typename ET>
+    struct das_operator_enum_AND<
+        ET,
+        typename std::enable_if<
+            std::is_same<typename std::underlying_type<ET>::type, int64_t>::value ||
+            std::is_same<typename std::underlying_type<ET>::type, uint64_t>::value
+        >::type
+    > {
+        static ET invoke(ET a, ET b) {
+            return ET(int64_t(a) & int64_t(b));
+        }
+        template <typename EA, typename EB>
+        static ET invoke(EA a, EB b) {
+            return ET(int64_t(a) & int64_t(b));
+        }
+    };
+
+    template <typename ET, typename Enable = void>
     struct das_operator_enum_OR {
         static ET invoke ( ET a, ET b ) {
             return ET(int(a) | int(b));
@@ -2790,6 +2808,23 @@ namespace das {
     };
 
     template <typename ET>
+    struct das_operator_enum_OR<
+        ET, 
+        typename std::enable_if<
+            std::is_same<typename std::underlying_type<ET>::type, int64_t>::value ||
+            std::is_same<typename std::underlying_type<ET>::type, uint64_t>::value
+        >::type
+    > {
+        static ET invoke(ET a, ET b) {
+            return ET(int64_t(a) | int64_t(b));
+        }
+        template <typename EA, typename EB>
+        static ET invoke(EA a, EB b) {
+            return ET(int64_t(a) | int64_t(b));
+        }
+    };
+
+    template <typename ET, typename Enable = void>
     struct das_operator_enum_XOR {
         static ET invoke ( ET a, ET b ) {
             return ET(int(a) ^ int(b));
@@ -2801,6 +2836,23 @@ namespace das {
     };
 
     template <typename ET>
+    struct das_operator_enum_XOR<
+        ET,
+        typename std::enable_if<
+            std::is_same<typename std::underlying_type<ET>::type, int64_t>::value ||
+            std::is_same<typename std::underlying_type<ET>::type, uint64_t>::value
+        >::type
+    > {
+        static ET invoke(ET a, ET b) {
+            return ET(int64_t(a) ^ int64_t(b));
+        }
+        template <typename EA, typename EB>
+        static ET invoke(EA a, EB b) {
+            return ET(int64_t(a) ^ int64_t(b));
+        }
+    };
+
+    template <typename ET, typename Enable = void>
     struct das_operator_enum_OR_EQU {
         static void invoke ( ET & a, ET b ) {
             a = ET(int(a) | int(b));
@@ -2812,6 +2864,23 @@ namespace das {
     };
 
     template <typename ET>
+    struct das_operator_enum_OR_EQU<
+        ET,
+        typename std::enable_if<
+            std::is_same<typename std::underlying_type<ET>::type, int64_t>::value ||
+            std::is_same<typename std::underlying_type<ET>::type, uint64_t>::value
+        >::type
+    > {
+        static void invoke(ET& a, ET b) {
+            a = ET(int64_t(a) | int64_t(b));
+        }
+        template <typename EA, typename EB>
+        static void invoke(EA& a, EB b) {
+            a = EA(int64_t(a) | int64_t(b));
+        }
+    };
+
+    template <typename ET, typename Enable = void>
     struct das_operator_enum_XOR_EQU {
         static void invoke ( ET & a, ET b ) {
             a = ET(int(a) ^ int(b));
@@ -2823,6 +2892,23 @@ namespace das {
     };
 
     template <typename ET>
+    struct das_operator_enum_XOR_EQU<
+        ET,
+        typename std::enable_if<
+            std::is_same<typename std::underlying_type<ET>::type, int64_t>::value ||
+            std::is_same<typename std::underlying_type<ET>::type, uint64_t>::value
+        >::type
+    > {
+        static void invoke(ET& a, ET b) {
+            a = ET(int64_t(a) ^ int64_t(b));
+        }
+        template <typename EA, typename EB>
+        static void invoke(EA& a, EB b) {
+            a = EA(int64_t(a) ^ int64_t(b));
+        }
+    };
+
+    template <typename ET, typename Enable = void>
     struct das_operator_enum_AND_EQU {
         static void invoke ( ET & a, ET b ) {
             a = ET(int(a) & int(b));
@@ -2834,6 +2920,23 @@ namespace das {
     };
 
     template <typename ET>
+    struct das_operator_enum_AND_EQU<
+        ET,
+        typename std::enable_if<
+            std::is_same<typename std::underlying_type<ET>::type, int64_t>::value ||
+            std::is_same<typename std::underlying_type<ET>::type, uint64_t>::value
+        >::type
+    > {
+        static void invoke(ET& a, ET b) {
+            a = ET(int64_t(a) & int64_t(b));
+        }
+        template <typename EA, typename EB>
+        static void invoke(EA& a, EB b) {
+            a = EA(int64_t(a) & int64_t(b));
+        }
+    };
+
+    template <typename ET, typename Enable = void>
     struct das_operator_enum_AND_AND {
         static bool invoke ( ET a, ET b ) {
             return (int(a) & int(b))!=0;
@@ -2845,6 +2948,23 @@ namespace das {
     };
 
     template <typename ET>
+    struct das_operator_enum_AND_AND<
+        ET,
+        typename std::enable_if<
+            std::is_same<typename std::underlying_type<ET>::type, int64_t>::value ||
+            std::is_same<typename std::underlying_type<ET>::type, uint64_t>::value
+        >::type
+    > {
+        static bool invoke(ET a, ET b) {
+            return (int64_t(a) & int64_t(b)) != 0;
+        }
+        template <typename EA, typename EB>
+        static bool invoke(EA a, EB b) {
+            return (int64_t(a) & int64_t(b)) != 0;
+        }
+    };
+
+    template <typename ET, typename Enable = void>
     struct das_operator_enum_NOT {
         static ET invoke ( ET a ) {
             return ET(~int(a));
@@ -2852,6 +2972,23 @@ namespace das {
         template <typename EA>
         static ET invoke ( EA a ) {
             return ET(~int(a));
+        }
+    };
+
+    template <typename ET>
+    struct das_operator_enum_NOT<
+        ET,
+        typename std::enable_if<
+            std::is_same<typename std::underlying_type<ET>::type, int64_t>::value ||
+            std::is_same<typename std::underlying_type<ET>::type, uint64_t>::value
+        >::type
+    > {
+        static ET invoke(ET a) {
+            return ET(~int64_t(a));
+        }
+        template <typename EA>
+        static ET invoke(EA a) {
+            return ET(~int64_t(a));
         }
     };
 

@@ -401,11 +401,24 @@ namespace das
 
     template <> struct cast <range64> : cast_iVec<range64> {};
     template <> struct cast <urange64> : cast_iVec<urange64> {};
+    
+    template <typename TT, typename Enable = void>
+    struct cast_enum {
+        static __forceinline TT to(vec4f x) { return (TT)v_extract_xi(v_cast_vec4i(x)); }
+        static __forceinline vec4f from(TT x) { return v_cast_vec4f(v_seti_x(int32_t(x))); }
+        static __forceinline vec4f from(int x) { return v_cast_vec4f(v_seti_x(int32_t(x))); }
+    };
 
     template <typename TT>
-    struct cast_enum {
-      static __forceinline TT to ( vec4f x )            { return (TT) v_extract_xi(v_cast_vec4i(x)); }
-      static __forceinline vec4f from ( TT x )          { return v_cast_vec4f(v_seti_x(int32_t(x))); }
-      static __forceinline vec4f from ( int x )         { return v_cast_vec4f(v_seti_x(int32_t(x))); }
+    struct cast_enum<
+        TT, 
+        typename std::enable_if< 
+            std::is_same<typename std::underlying_type<TT>::type, int64_t>::value || 
+            std::is_same<typename std::underlying_type<TT>::type, uint64_t>::value
+        >::type
+    > {
+        static __forceinline TT to(vec4f x) { return (TT)v_extract_xi64(v_cast_vec4i(x)); }
+        static __forceinline vec4f from(TT x) { return v_cast_vec4f(v_ldui_half(&x)); }
+        static __forceinline vec4f from(int64_t x) { return v_cast_vec4f(v_ldui_half(x)); }
     };
 }

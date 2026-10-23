@@ -345,6 +345,13 @@ def test_standalone_emit(t : T?) {   // nolint:STYLE038 - flat list of emit subc
         expect_emit_failure(t, "_standalone_no_aot_fixture", out_dir)
     }
 
+    t |> run("a dasPEG grammar has a standalone form") @(t : T?) {
+        let source = generate_standalone_source(t, "_standalone_peg_fixture", out_dir)
+        t |> success(find(source, "has no standalone form") < 0, "peg is not a no-AOT module")
+        t |> success(find(source, "eval_add") >= 0, "the grammar's caller was emitted")
+        t |> equal(brace_balance(source), 0, "unbalanced braces in the generated C++")
+    }
+
     t |> run("every function-table row names a body the factory table registers") @(t : T?) {
         let source = generate_standalone_source(t, "_standalone_cross_module_fixture", out_dir)
         let factory <- factory_hashes(source)
